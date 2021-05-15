@@ -1,9 +1,9 @@
-name: Opt2q Package
+name: Opt2q
 on:
   push:
-    branches: [ manunscript ]
+    branches: [ master ]
   pull_request:
-    branches: [ manunscript ]
+    branches: [ master ]
 jobs:
   build-linux:
     runs-on: ubuntu-latest
