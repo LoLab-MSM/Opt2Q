@@ -6,9 +6,9 @@ from pydream.convergence import Gelman_Rubin
 from pydream.parameters import SampledParam
 from multiprocessing import current_process
 from opt2q.calibrator import objective_function
-from opt2q_examples.cell_death_data_calibration.cell_death_data_calibration_setup \
+from opt2q_examples.nominal_data_calibration.nominal_data_calibration_setup \
     import shift_and_scale_heterogeneous_population_to_new_params as sim_population
-from opt2q_examples.cell_death_data_calibration.cell_death_data_calibration_setup \
+from opt2q_examples.nominal_data_calibration.nominal_data_calibration_setup \
     import set_up_simulator, pre_processing, true_params, set_up_classifier, synth_data
 
 # Model name

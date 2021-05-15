@@ -61,7 +61,7 @@ def shift_and_scale_heterogeneous_population_to_new_params(x_):
 
 # ------- Simulations -------
 # fluorescence data as reference
-file_path = os.path.join(script_dir, '../fluorescence_data_calibration/fluorescence_data.csv')
+file_path = os.path.join(script_dir, '../semi_quantitative_data_calibration/fluorescence_data.csv')
 raw_fluorescence_data = pd.read_csv(file_path)
 time_axis = np.linspace(0, raw_fluorescence_data['# Time'].max()*60, 100)
 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
         plt.show()
 
     # Set up simulation
-    from opt2q_examples.generate_synthetic_cell_death_dataset import results_lg, labels
+    from opt2q_examples.generate_synthetic_nominal_dataset import results_lg, labels
 
     for k, v in labels.items():
         idx, obs = v

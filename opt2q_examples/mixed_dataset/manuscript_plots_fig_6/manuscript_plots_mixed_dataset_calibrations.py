@@ -1,7 +1,7 @@
 # MW Irvin -- Lopez Lab -- 2021-03-04
 import os
 from matplotlib import pyplot as plt
-from opt2q_examples.cell_death_data_calibration.cell_death_data_calibration_setup \
+from opt2q_examples.nominal_data_calibration.nominal_data_calibration_setup \
     import synth_data, extrinsic_noise_params
 import numpy as np
 from opt2q_examples.plot_tools import utils, plot, calc
@@ -9,16 +9,17 @@ from opt2q_examples.apoptosis_model import model
 import matplotlib.gridspec as gridspec
 import pandas as pd
 import random
-from opt2q.measurement.base import ScaleToMinMax
+from opt2q.measurement.base import ScaleToMinMax, Interpolate, LogisticClassifier
 from matplotlib import colors
 from matplotlib.lines import Line2D
+import pickle
 
 # Calibration Methods
 # ===================
-# We calibrated aEARM to cell death vs. survival outcomes for cells that had known starting concentrations of ligand
-# and other observables (e.g. DISC, MOMP, and Unrelated species). The cell death and survival outcomes were modeled
-# using a preset classifier, which models the probability of cell death as a function of variables extracted for "ground
-# truth" tBID dynamics.
+# We calibrated aEARM to ordinal measurements of IC-DISC and cell death vs. survival outcomes for cells that had known
+# starting concentrations of ligand and other observables (e.g. DISC, MOMP, and Unrelated species). The cell death and
+# survival outcomes were modeled using a preset classifier, which models the probability of cell death as a function of
+# variables extracted for "ground truth" tBID dynamics. The dataset
 #
 # All cell death vs survival outcomes were considered to be independent (i.e. the log-likelihood of the dataset is the
 # sum of the individual log-likelihoods).
@@ -27,7 +28,7 @@ from matplotlib.lines import Line2D
 # Measurement model priors were laplace priors as shown below:
 
 from pydream.parameters import SampledParam
-from scipy.stats import norm, laplace, invgamma
+from scipy.stats import norm, laplace, invgamma, expon
 true_params = utils.get_model_param_true(include_extra_reactions=True)
 
 # Priors
@@ -44,10 +45,14 @@ model_param_priors = [SampledParam(norm, loc=p, scale=1.5) for p in true_params]
                     SampledParam(laplace, loc=0.0, scale=0.1),  # "Unrelated_Signal" coef  float
                     SampledParam(laplace, loc=0.0, scale=0.1),  # "tBID_obs" coef  float
                     SampledParam(laplace, loc=0.0, scale=0.1),  # "time" coef  float
+                    SampledParam(expon, loc=0.0, scale=100.0),  # coefficients__IC_DISC_localization__coef_   float
+                    SampledParam(expon, loc=0.0, scale=0.25),  # coefficients__IC_DISC_localization__theta_1  float
+                    SampledParam(expon, loc=0.0, scale=0.25),  # coefficients__IC_DISC_localization__theta_2  float
+                    SampledParam(expon, loc=0.0, scale=0.25),  # coefficients__IC_DISC_localization__theta_3  float
                     ]  # coef are assigned in order by their column names' ASCII values
 
 # The calibration files were saved as:
-# 'apoptosis_model_tbid_cell_death_data_calibration_opt2q_...'
+# 'apoptosis_model_tbid_cell_death_and_disc_immunoblot_opt2q_...'
 
 # =====================================
 # ======== File Details ===========
@@ -66,73 +71,29 @@ line_width = 2
 
 # ====================================================
 # ====================================================
-# Plot Cell-Death vs. Survival Data
-fig00, ax = plt.subplots(figsize=(6, 3.75))
+# Load and Plot Synthetic Ordinal tBID vs. time-series data (1500s)
+with open(f'../synthetic_IC_DISC_localization_blot_dataset_2020_10_18.pkl', 'rb') as data_input:
+    dataset_IC_DISC = pickle.load(data_input)
 
-condition1 = (synth_data['apoptosis'] == 1) & (synth_data['TRAIL_conc'] == '10ng/mL')
-condition2 = (synth_data['apoptosis'] == 1) & (synth_data['TRAIL_conc'] == '50ng/mL')
-condition3 = (synth_data['apoptosis'] == 0) & (synth_data['TRAIL_conc'] == '10ng/mL')
-condition4 = (synth_data['apoptosis'] == 0) & (synth_data['TRAIL_conc'] == '50ng/mL')
-
-ax.scatter(x=extrinsic_noise_params[condition1]['kc0']*1e5,
-           y=0.25*np.random.random(synth_data[condition1]['apoptosis'].shape[0]), marker='x', color=cm.colors[1],
-           label='Apoptosis at 10ng/mL TRAIL', alpha=0.5)
-
-ax.scatter(x=extrinsic_noise_params[condition3]['kc0']*1e5,
-           y=0.25*np.random.random(synth_data[condition3]['apoptosis'].shape[0])+0.5, marker='o', color=cm.colors[1],
-           label='Survival at 10ng/mL TRAIL', alpha=0.5)
-
-ax.scatter(x=extrinsic_noise_params[condition2]['kc0']*1e5,
-           y=0.25*np.random.random(synth_data[condition2]['apoptosis'].shape[0])+1.0, marker='x', color=cm.colors[7],
-           label='Apoptosis at 50ng/mL TRAIL', alpha=0.5)
-
-ax.scatter(x=extrinsic_noise_params[condition4]['kc0']*1e5,
-           y=0.25*np.random.random(synth_data[condition4]['apoptosis'].shape[0])+1.5, marker='o', color=cm.colors[7],
-           label='Survival at 50ng/mL TRAIL', alpha=0.5)
-ax.set_ylim(-0.25, 2.0)
-ax.axes.get_yaxis().set_visible(False)
-ax.set_xlabel('DISC formation rate coefficient X 10^5 [1/s]')
-# ax.legend(loc='upper right')
-plt.savefig('Fig3b__Synthetic_Cell_Death_vs_Survival_Dataset.pdf')
-plt.show()
-
-# Plot Cell-Death vs. Survival Data
-fig01, ax = plt.subplots(figsize=(6, 3.75))
-
-condition1 = (synth_data['apoptosis'] == 1) & (synth_data['TRAIL_conc'] == '10ng/mL')
-condition2 = (synth_data['apoptosis'] == 1) & (synth_data['TRAIL_conc'] == '50ng/mL')
-condition3 = (synth_data['apoptosis'] == 0) & (synth_data['TRAIL_conc'] == '10ng/mL')
-condition4 = (synth_data['apoptosis'] == 0) & (synth_data['TRAIL_conc'] == '50ng/mL')
-
-ax.scatter(x=extrinsic_noise_params[condition1]['kc0']*1e5,
-           y=0.25*np.random.random(synth_data[condition1]['apoptosis'].shape[0]), marker='x', color=cm.colors[1],
-           label='Apoptosis at 10ng/mL TRAIL', alpha=0.)
-
-
-ax.scatter(x=extrinsic_noise_params[condition3]['kc0']*1e5,
-           y=0.25*np.random.random(synth_data[condition3]['apoptosis'].shape[0])+0.5, marker='o', color=cm.colors[1],
-           label='Survival at 10ng/mL TRAIL', alpha=0.)
-
-ax.scatter(x=extrinsic_noise_params[condition2]['kc0']*1e5,
-           y=0.25*np.random.random(synth_data[condition2]['apoptosis'].shape[0])+1.0, marker='x', color=cm.colors[7],
-           label='Apoptosis at 50ng/mL TRAIL', alpha=0.)
-
-ax.scatter(x=extrinsic_noise_params[condition4]['kc0']*1e5,
-           y=0.25*np.random.random(synth_data[condition4]['apoptosis'].shape[0])+1.5, marker='o', color=cm.colors[7],
-           label='Survival at 50ng/mL TRAIL', alpha=0.)
-ax.set_ylim(-0.25, 2.0)
-ax.axes.get_yaxis().set_visible(False)
-ax.set_xlabel('DISC formation rate coefficient X 10^5 [1/s]')
-ax.legend(loc='upper right')
-plt.savefig('Fig3b__Synthetic_Cell_Death_vs_Survival_Dataset_Legend_Only.pdf')
+fig02, ax = plt.subplots(figsize=(6, 3.75))
+for level in dataset_IC_DISC.data['IC_DISC_localization'].unique():  # Data
+    d = dataset_IC_DISC.data[dataset_IC_DISC.data['IC_DISC_localization'] == level]
+    ax.scatter(x=d['time'],
+               y=d['IC_DISC_localization'].values,
+               s=30, color=cm.colors[level], alpha=0.5)
+ax.set_xlabel('time [s]')
+ax.set_ylabel('Ordinal IC-DISC levels')
+ax.tick_params(axis='x', which='major', labelsize=tick_labels_x)
+ax.tick_params(axis='y', which='major', labelsize=tick_labels_y)
+plt.savefig('Fig3b__Synth_IC_DISC_ordinal_data.pdf')
 plt.show()
 
 # ====================================================
 # ======== File Details ==============================
 
-calibration_folder = 'cell_death_data_calibration_results'
-calibration_date = '2020911'  # calibration file name contains date string
-calibration_tag = 'apoptosis_model_tbid_cell_death_data_calibration_opt2q_'
+calibration_folder = 'mixed_data_calibration_results'
+calibration_date = '20201019'  # calibration file name contains date string
+calibration_tag = 'apoptosis_model_tbid_cell_death_and_disc_immunoblot_opt2q_'
 
 
 cal_args = (parent_dir, calibration_folder, calibration_date, calibration_tag)
@@ -141,13 +102,26 @@ cal_args = (parent_dir, calibration_folder, calibration_date, calibration_tag)
 gr_values = utils.load_gelman_rubin_values(*cal_args)
 chain_history = utils.load_chain_history(*cal_args)
 parameter_traces, log_p_traces = utils.load_parameter_and_log_p_traces(*cal_args, include_extra_reactions=True)
-burn_in = int(0.50*len(parameter_traces[0]))
-parameter_traces_burn_in, log_p_traces_burn_in = utils.thin_traces(parameter_traces, log_p_traces, 1, burn_in)
+
+if any(gr_values > 1.2):
+    from pydream.convergence import Gelman_Rubin
+    burn_in = 120000
+    p_gr_idx = len(parameter_traces[0]) - 2 * burn_in
+    p_gr = [p[p_gr_idx:, :] for p in parameter_traces[0:2] + parameter_traces[3:]]
+    gr_values = Gelman_Rubin(p_gr)
+    parameter_traces_burn_in = [p[burn_in:, :] for p in parameter_traces[0:2] + parameter_traces[3:]]
+    log_p_traces_burn_in = [p[burn_in:, :] for p in log_p_traces[0:2] + log_p_traces[3:]]
+else:
+    burn_in = int(0.50*len(parameter_traces[0]))
+    parameter_traces_burn_in, log_p_traces_burn_in = utils.thin_traces(parameter_traces, log_p_traces, 1, burn_in)
 
 param_names = utils.get_model_param_names(model, include_extra_reactions=True) + \
               utils.get_population_param('cell_death_data') + \
-              utils.get_measurement_param_names('cell_death_data')
-print('Cell Death Model')
+              utils.get_measurement_param_names('cell_death_data') + \
+              utils.get_measurement_param_names('immunoblot_disc')
+
+
+print('Mixed Data Model')
 for v in gr_values:
     print(v)
 # =======================================================================
@@ -189,7 +163,7 @@ for param_subset_idx in range(int(np.ceil(len(param_names)/n_params_subset))):
     gr_ax.set_yticks([])
     gr_ax.tick_params(axis='x', which='major', labelsize=local_tick_labels_x)
 
-    plt.savefig(f'Supplemental__Log_Posterior_Traces_and_Hist_for_Cell_Death_Data_Calibration_Plot{param_subset_idx}.pdf')
+    # plt.savefig(f'Supplemental__Log_Posterior_Traces_and_Hist_for_Fluorescence_Calibration_Plot{param_subset_idx}.pdf')
     ax_trace_list[-1].set_ylabel(param_subset[-1], rotation=0, labelpad=40)
     gs.tight_layout(fig, rect=[0.2, 0.0, 1, 0.93])
     plt.show()
@@ -215,12 +189,14 @@ prior_parameter_sample = utils.sample_model_param_priors(model_param_priors, sam
 # Plots KDE of the prior (blue), posterior (orange), and true (vertical dotted line)
 log_model_param_true = utils.get_model_param_true(include_extra_reactions=True)
 population_param_true = utils.get_population_param_start('cell_death_data')
-
 # The measurement model formula is m*(x+y+...) where m, x, y, ... can be positive or negative.
 # Therefore an equivalent measurement model is -m*(-x-y-...). The calibration converged on the latter formula.
 # We account for this by multiplying the "ground truth" by -1.
-measurement_param_true = [-1.0*p for p in utils.get_measurement_model_true_params('cell_death_data')]
-params_true = np.hstack((log_model_param_true, population_param_true, measurement_param_true))
+measurement_param_true = utils.get_measurement_model_true_params('cell_death_data')
+measurement_param_true_disc = utils.get_measurement_model_true_params('immunoblot_disc')
+
+params_true = np.hstack((log_model_param_true, population_param_true, measurement_param_true,
+                         measurement_param_true_disc))
 
 n = 24
 gs_columns = 3
@@ -255,7 +231,7 @@ for ps in range(int(np.ceil(len(param_names)/n_params_subset))):
         ax.axvline(true_subset[i], color='k', alpha=0.4, linestyle='--')
 
     gs.tight_layout(fig, rect=[0.0, 0.0, 1, 1.0])
-    plt.savefig(f'Supplemental__KDE_Parameter_Priors_Posteriors_Cell_Death_Data_Plot{ps}.pdf')
+    plt.savefig(f'Supplemental__KDE_Parameter_Priors_Posteriors_Mixed_Dataset_Plot{ps}.pdf')
     plt.show()
 
 # =======================================================================
@@ -271,18 +247,19 @@ ensemble_parameters = ensemble_parameters.rename(columns={'index': 'simulation'}
 sim.param_values = ensemble_parameters
 sim_res_param_ensemble = sim.run()
 results_param_ensemble = sim_res_param_ensemble.opt2q_dataframe.reset_index().rename(columns={'index': 'time'})
-sim_res_param_ensemble_normed = ScaleToMinMax(columns=['tBID_obs', 'cPARP_obs'], groupby='simulation').\
-    transform(results_param_ensemble[['time', 'tBID_obs', 'cPARP_obs', 'simulation']])
+sim_res_param_ensemble_normed = ScaleToMinMax(columns=['tBID_obs', 'cPARP_obs', 'C8_DISC_recruitment_obs'],
+                                              groupby='simulation').\
+    transform(results_param_ensemble[['time', 'tBID_obs', 'cPARP_obs', 'C8_DISC_recruitment_obs', 'simulation']])
 
 # Simulate True Params
 sim.param_values = model_param_true
 sim_res_param_true = sim.run()
 results_param_true = sim_res_param_true.opt2q_dataframe.reset_index().rename(columns={'index': 'time'})
-sim_res_param_true_normed = ScaleToMinMax(columns=['tBID_obs', 'cPARP_obs']).\
-    transform(results_param_true[['time', 'tBID_obs', 'cPARP_obs']])
+sim_res_param_true_normed = ScaleToMinMax(columns=['tBID_obs', 'cPARP_obs', 'C8_DISC_recruitment_obs']).\
+    transform(results_param_true[['time', 'tBID_obs', 'cPARP_obs', 'C8_DISC_recruitment_obs']])
 
 # Posterior Prediction of the Measurement Model
-plot_domain = pd.DataFrame({'tBID_obs': np.linspace(0, 1, 100), 'cPARP_obs': np.linspace(0, 1, 100)})
+plot_domain = pd.DataFrame({'C8_DISC_recruitment_obs': np.linspace(0, 1, 100)})
 
 
 # Plot tBID Dynamics ==================================================
@@ -310,9 +287,77 @@ ax1.legend()
 ax1.tick_params(axis='x', which='major', labelsize=tick_labels_x)
 ax1.tick_params(axis='y', which='major', labelsize=tick_labels_y)
 
-plt.savefig('Fig3b__Calibration_to_cell_death_data_tBID_Plot.pdf')
+plt.savefig('Fig3__Calibration_Mixed_Dataset_tBID_Plot.pdf')
 plt.show()
 
+# Plot IC-DISC Dynamics ==================================================
+# set up IC-DISC classifier
+x_int = Interpolate('time', ['C8_DISC_recruitment_obs'], dataset_IC_DISC.data['time'])\
+    .transform(sim_res_param_true_normed)
+lc = LogisticClassifier(dataset_IC_DISC, column_groups={'IC_DISC_localization': ['C8_DISC_recruitment_obs']},
+                        do_fit_transform=True, classifier_type='ordinal_eoc')
+lc.set_up(x_int)
+lc.do_fit_transform = False
+
+lc_results_list = []
+p_dom = pd.DataFrame(np.linspace(0, 1, 100), columns=['plot_domain'])
+for row in parameter_sample[:, -4:]:
+    c0 = row[0]
+    t1 = row[1]
+    t2 = t1 + row[2]
+    t3 = t2 + row[3]
+
+    lc.set_params(**{'coefficients__IC_DISC_localization__coef_': np.array([c0]),
+                     'coefficients__IC_DISC_localization__theta_': np.array([t1, t2, t3]) * c0})
+    lc_results = pd.concat([lc.transform(plot_domain), p_dom], axis=1)
+    lc_results_list.append(lc_results)
+
+lc_results_df = pd.concat(lc_results_list, ignore_index=True)
+lc_results_df.drop(columns=['IC_DISC_localization'], inplace=True)
+
+upper_lc = calc.simulation_results_quantile(lc_results_df, 0.975, groupby='plot_domain')
+median_lc = calc.simulation_results_quantile(lc_results_df, 0.50, groupby='plot_domain')
+lower_lc = calc.simulation_results_quantile(lc_results_df, 0.025, groupby='plot_domain')
+
+lc.set_params(**{'coefficients__IC_DISC_localization__coef_': np.array([25]),  # true parameters
+                 'coefficients__IC_DISC_localization__theta_': np.array([0.05, 0.40, 0.85])*25})
+lc_results_true = lc.transform(plot_domain)
+
+# Plot
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 4), sharey='all', gridspec_kw={'width_ratios': [2, 1]})
+
+sim_res_param_ensemble_median_normed = calc.simulation_results_quantile(sim_res_param_ensemble_normed, 0.5)
+plot.plot_simulation_results_quantile_fill_between(ax1, sim_res_param_ensemble_normed, 'C8_DISC_recruitment_obs',
+                                                   color=cm.colors[2], alpha=0.2, upper_quantile=0.975,
+                                                   lower_quantile=0.025, label='posterior', linewidth=line_width)
+plot.plot_simulation_results(ax1, sim_res_param_ensemble_median_normed, 'C8_DISC_recruitment_obs', color='k', alpha=0.4)
+plot.plot_simulation_results(ax1, sim_res_param_true_normed, 'C8_DISC_recruitment_obs', color='k', alpha=0.4,
+                             label='true', linewidth=line_width, linestyle=':')
+ax1.set_xlabel('time [s]')
+ax1.set_ylabel('Normalized IC-DISC Concentration')
+ax1.legend()
+ax1.tick_params(axis='x', which='major', labelsize=tick_labels_x)
+ax1.tick_params(axis='y', which='major', labelsize=tick_labels_y)
+
+for level in dataset_IC_DISC.data['IC_DISC_localization'].unique():  # Data
+    d = dataset_IC_DISC.data[dataset_IC_DISC.data['IC_DISC_localization'] == level]
+    ax1.scatter(x=d['time'],
+                y=d['IC_DISC_localization'].values/(dataset_IC_DISC.data['IC_DISC_localization'].max()),
+                s=30, color=cm.colors[level], alpha=0.5)
+
+IC_DISC_results = upper_lc.filter(regex='IC_DISC_localization')
+for n, col in enumerate(sorted(list(IC_DISC_results.columns))):
+    ax2.fill_betweenx(plot_domain['C8_DISC_recruitment_obs'], upper_lc[col], lower_lc[col], alpha=0.4,
+                      color=cm.colors[n])
+    ax2.plot(median_lc[col], plot_domain['C8_DISC_recruitment_obs'], alpha=0.7, color=cm.colors[n])
+    ax2.plot(lc_results_true[col], plot_domain['C8_DISC_recruitment_obs'], alpha=0.7, color=cm.colors[n],
+             linestyle='--')
+ax2.tick_params(axis='x', which='major', labelsize=tick_labels_x)
+
+plt.savefig('Fig3_Supplemental__Calibration_Mixed_Dataset_DISC_Plot.pdf')
+plt.show()
+
+# ======================================================================
 # =====================================================
 # Simulate extrinsic noise
 parameter_sample_size = 100
@@ -351,9 +396,9 @@ ax.scatter(data_and_features_random_post_populations[data_and_features_random_po
            .iloc[::80]['tBID_obs'],
            data_and_features_random_post_populations[data_and_features_random_post_populations.apoptosis == 1]
            .iloc[::80]['time'], marker='x', color='k', alpha=0.2)
-plot.measurement_model_quantile_fill_between(ax, parameter_sample[:, -5:], 'tBID_obs', 'time', 0.5,
+plot.measurement_model_quantile_fill_between(ax, parameter_sample[:, 35:40], 'tBID_obs', 'time', 0.5,
                                              np.linspace(-4, 4, 100), color='k', alpha=0.15)
-plot.measurement_model_quantile(ax, parameter_sample[:, -5:], 'tBID_obs', 'time', 0.5,
+plot.measurement_model_quantile(ax, parameter_sample[:, 35:40], 'tBID_obs', 'time', 0.5,
                                 np.linspace(-4, 4, 100), color='k', alpha=1)
 plot.measurement_model_sample(ax, np.array([[4.00, -0.25, 0.00, 0.25, -1.00]]), 'tBID_obs', 'time', 0.5,
                               np.linspace(-4, 4, 100), color='b', alpha=0.5)
@@ -370,7 +415,7 @@ plt.xlabel('max Bid truncation rate')
 plt.ylabel('time at max Bid truncation rate')
 plt.xlim(-3.8, 3.8)
 plt.ylim(-3.8, 3.8)
-plt.savefig('Fig6__Calibration_to_cell_death_data_Measurement_Model_Plot.pdf')
+plt.savefig('Fig6__Calibration_to_Mixed_Dataset_Measurement_Model_Plot.pdf')
 plt.show()
 
 fig19, ax0 = plt.subplots(figsize=(7, 7))
@@ -382,7 +427,7 @@ legend_elements = [Line2D([0], [0], color=cm.colors[1], alpha=0.5, label='10ng/m
                    Line2D([0], [0], color='b', alpha=0.5, label='preset 50% probability line')
                    ]
 plt.legend(handles=legend_elements)
-plt.savefig('Fig6__Calibration_to_cell_death_data_Measurement_Model_Legend.pdf')
+plt.savefig('Fig6__Calibration_to_Mixed_Dataset_Measurement_Model_Legend.pdf')
 plt.show()
 
 fig20, ax = plt.subplots(figsize=(7, 7))
@@ -394,9 +439,9 @@ ax.scatter(data_and_features_random_post_populations[data_and_features_random_po
            .iloc[::80]['tBID_obs'],
            data_and_features_random_post_populations[data_and_features_random_post_populations.apoptosis == 1]
            .iloc[::80]['Unrelated_Signal'], marker='x', color='k', alpha=0.2)
-plot.measurement_model_quantile_fill_between(ax, parameter_sample[:, -5:], 'tBID_obs', 'Unrelated_Signal', 0.5,
+plot.measurement_model_quantile_fill_between(ax, parameter_sample[:, 35:40], 'tBID_obs', 'Unrelated_Signal', 0.5,
                                              np.linspace(-4, 4, 100), color='k', alpha=0.15)
-plot.measurement_model_quantile(ax, parameter_sample[:, -5:], 'tBID_obs', 'Unrelated_Signal', 0.5,
+plot.measurement_model_quantile(ax, parameter_sample[:, 35:40], 'tBID_obs', 'Unrelated_Signal', 0.5,
                                 np.linspace(-4, 4, 100), color='k', alpha=1)
 plot.measurement_model_sample(ax, np.array([[4.00, -0.25, 0.00, 0.25, -1.00]]), 'tBID_obs', 'Unrelated_Signal', 0.5,
                               np.linspace(-4, 4, 100), color='b', alpha=0.5)
@@ -412,16 +457,16 @@ plt.xlabel('max Bid truncation rate')
 plt.ylabel('Unrelated Signal')
 plt.xlim(-3.8, 3.8)
 plt.ylim(-3.8, 3.8)
-plt.savefig('Fig6__Calibration_to_cell_death_data_Measurement_Model_Plot_Unrelated_Species.pdf')
+plt.savefig('Fig6__Calibration_to_mixed_dataset_Measurement_Model_Plot_Unrelated_Species.pdf')
 plt.show()
 
 
 fig22, ax = plt.subplots()
-plot.kde_of_parameter(ax, calc.feature_values(parameter_sample, 'Unrelated_Signal'),
+plot.kde_of_parameter(ax, calc.feature_values(parameter_sample[:, 35:40], 'Unrelated_Signal'),
                       color=cm.colors[0], label='Unrelated Signal')
-plot.kde_of_parameter(ax, calc.feature_values(parameter_sample, 'time'),
+plot.kde_of_parameter(ax, calc.feature_values(parameter_sample[:, 35:40], 'time'),
                       color=cm.colors[1], label='Time at Maximum BID truncation')
-plot.kde_of_parameter(ax, calc.feature_values(parameter_sample, 'tBID_obs'),
+plot.kde_of_parameter(ax, calc.feature_values(parameter_sample[:, 35:40], 'tBID_obs'),
                       color=cm.colors[2], label='Maximum BID truncation')
-plt.savefig('Fig6__Posterior_Estimates_of_Weight_Coefficients_of_Cell_Death_Predictors.pdf')
+plt.savefig('Fig6__Posterior_Estimates_of_Weight_Coefficients_of_Cell_Death_Predictors_Mixed_Dataset.pdf')
 plt.show()

@@ -45,7 +45,7 @@ model_param_priors = [SampledParam(uniform, loc=0.0, scale=100.0),         # coe
 # Update this part with the new log-p, parameter files, etc
 script_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(script_dir)
-calibration_folder = 'immunoblot_calibration_results'
+calibration_folder = 'ordinal_data_calibration_results'
 calibration_name = 'immunoblot_classifier_calibration_202129'
 calibration_date = '202129'
 
@@ -54,7 +54,7 @@ plot_title = 'Immunoblot Calibration'
 # ====================================================
 # ====================================================
 # Load data
-with open(os.path.join(parent_dir, 'synthetic_WB_dataset_60s_2020_12_7.pkl'), 'rb') as data_input:
+with open(os.path.join(parent_dir, 'synthetic_ordinal_dataset_60s_2020_12_7.pkl'), 'rb') as data_input:
     dataset = pickle.load(data_input)
 
 cal_args = (parent_dir, calibration_folder, calibration_date, calibration_name)

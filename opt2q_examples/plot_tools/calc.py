@@ -4,9 +4,9 @@ import pandas as pd
 from scipy.fftpack import fft, ifft, ifftshift
 from pydream.convergence import Gelman_Rubin
 from scipy.stats import lognorm
-from opt2q_examples.cell_death_data_calibration.cell_death_data_calibration_setup \
+from opt2q_examples.nominal_data_calibration.nominal_data_calibration_setup \
     import shift_and_scale_heterogeneous_population_to_new_params as simulate_population
-from opt2q_examples.cell_death_data_calibration.cell_death_data_calibration_setup import pre_processing
+from opt2q_examples.nominal_data_calibration.nominal_data_calibration_setup import pre_processing
 
 
 def gelman_rubin_trace(traces, param_idx, burn_in, thin):

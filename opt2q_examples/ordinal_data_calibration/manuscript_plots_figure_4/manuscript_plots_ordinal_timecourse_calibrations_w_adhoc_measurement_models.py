@@ -15,7 +15,7 @@ from pydream.convergence import Gelman_Rubin
 # Calibration Methods
 # ===================
 # We calibrate the aEARM to the dataset that contains ordinal values of tBID and cPARP at every 60s time-point.
-# The dataset is stored here: 'synthetic_WB_dataset_60s_2020_12_7.pkl'
+# The dataset is stored here: 'synthetic_ordinal_dataset_60s_2020_12_7.pkl'
 #
 # The values of tBID and cPARP are all independent (i.e. the log-likelihood of the dataset is the sum of the individual
 # log-likelihoods).
@@ -55,7 +55,7 @@ line_width = 2
 # ====================================================
 # ====================================================
 # Load and Plot Synthetic Ordinal tBID vs. time-series data (60s)
-with open(f'synthetic_WB_dataset_60s_2020_12_7.pkl', 'rb') as data_input:
+with open(f'synthetic_ordinal_dataset_60s_2020_12_7.pkl', 'rb') as data_input:
     dataset_60 = pickle.load(data_input)
 
 # ================================================== #
@@ -70,7 +70,7 @@ with open(f'synthetic_WB_dataset_60s_2020_12_7.pkl', 'rb') as data_input:
 # ====================================================
 # ======== File Details ==============================
 
-calibration_folder = 'immunoblot_calibration_results'
+calibration_folder = 'ordinal_data_calibration_results'
 calibration_date = '20191213'  # calibration file name contains date string
 calibration_tag = 'immunoblot_data_calibration_fmm_inc_'
 
@@ -300,7 +300,7 @@ plt.show()
 # ====================================================
 # ======== File Details ==============================
 
-calibration_folder = 'immunoblot_calibration_results'
+calibration_folder = 'ordinal_data_calibration_results'
 calibration_date = '2020131'  # calibration file name contains date string
 calibration_tag = 'immunoblot_data_calibration_fmm_inc_v2_'
 

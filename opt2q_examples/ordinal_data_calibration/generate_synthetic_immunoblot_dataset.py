@@ -16,7 +16,7 @@ save_dataset = True
 script_dir = os.path.dirname(__file__)
 parent_dir = os.path.dirname(script_dir)
 
-file_path = os.path.join(script_dir, '../fluorescence_data_calibration/fluorescence_data.csv')
+file_path = os.path.join(script_dir, '../semi_quantitative_data_calibration/fluorescence_data.csv')
 
 raw_fluorescence_data = pd.read_csv(file_path)
 fluorescence_data = raw_fluorescence_data[['# Time', 'norm_IC-RP', 'nrm_var_IC-RP', 'norm_EC-RP', 'nrm_var_EC-RP']]\

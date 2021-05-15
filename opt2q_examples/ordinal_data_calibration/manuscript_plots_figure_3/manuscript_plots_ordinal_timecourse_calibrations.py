@@ -69,7 +69,7 @@ line_width = 2
 # ====================================================
 # Load Fluorescence Data
 opt2q_example_folder = os.path.dirname(parent_dir)
-fluorescence_folder = os.path.join(opt2q_example_folder, 'fluorescence_data_calibration/')
+fluorescence_folder = os.path.join(opt2q_example_folder, 'semi_quantitative_data_calibration/')
 fluorescence_data = utils.load_cell_death_data(fluorescence_folder, 'fluorescence_data.csv')
 
 # ====================================================
@@ -112,7 +112,7 @@ plt.show()
 # ====================================================
 # ====================================================
 # Load and Plot Synthetic Ordinal tBID vs. time-series data (1500s)
-with open(f'synthetic_WB_dataset_1500s_2020_12_3.pkl', 'rb') as data_input:
+with open(f'synthetic_ordinal_dataset_1500s_2020_12_3.pkl', 'rb') as data_input:
     dataset_1500 = pickle.load(data_input)
 
 fig02, ax = plt.subplots(figsize=(6, 3.75))
@@ -159,7 +159,7 @@ plt.show()
 # ====================================================
 # ====================================================
 # Load and Plot Synthetic Ordinal tBID vs. time-series data (300s)
-with open(f'synthetic_WB_dataset_300s_2020_12_3.pkl', 'rb') as data_input:
+with open(f'synthetic_ordinal_dataset_300s_2020_12_3.pkl', 'rb') as data_input:
     dataset_300 = pickle.load(data_input)
 
 fig02, ax = plt.subplots(figsize=(6, 3.75))
@@ -192,7 +192,7 @@ plt.show()
 # ====================================================
 # ====================================================
 # Load and Plot Synthetic Ordinal tBID vs. time-series data (180s)
-with open(f'synthetic_WB_dataset_180s_2021_3_11.pkl', 'rb') as data_input:
+with open(f'synthetic_ordinal_dataset_180s_2021_3_11.pkl', 'rb') as data_input:
     dataset_180 = pickle.load(data_input)
 
 fig02, ax = plt.subplots(figsize=(6, 3.75))
@@ -225,7 +225,7 @@ plt.show()
 # ====================================================
 # ====================================================
 # Load and Plot Synthetic Ordinal tBID vs. time-series data (60s)
-with open(f'synthetic_WB_dataset_60s_2020_12_7.pkl', 'rb') as data_input:
+with open(f'synthetic_ordinal_dataset_60s_2020_12_7.pkl', 'rb') as data_input:
     dataset_60 = pickle.load(data_input)
 
 fig02, ax = plt.subplots(figsize=(6, 3.75))
@@ -459,7 +459,7 @@ plt.show()
 # ====================================================
 # ======== File Details ==============================
 
-calibration_folder = 'immunoblot_calibration_results'
+calibration_folder = 'ordinal_data_calibration_results'
 calibration_date = '2020118'  # calibration file name contains date string
 calibration_tag = 'apoptosis_params_and_immunoblot_classifier_calibration'
 
@@ -656,7 +656,7 @@ plt.show()
 # ====================================================
 # ======== File Details ==============================
 
-calibration_folder = 'immunoblot_calibration_results'
+calibration_folder = 'ordinal_data_calibration_results'
 calibration_date = '2021319'  # calibration file name contains date string
 calibration_tag = 'apoptosis_params_and_immunoblot_classifier_calibration_180s'
 
@@ -857,7 +857,7 @@ plt.show()
 # ====================================================
 # ======== File Details ==============================
 
-calibration_folder = 'immunoblot_calibration_results'
+calibration_folder = 'ordinal_data_calibration_results'
 calibration_date = '202133'  # calibration file name contains date string
 # calibration_date = '2021225'  # calibration file name contains date string
 calibration_tag = 'apoptosis_params_and_immunoblot_classifier_calibration_300s'
@@ -1057,7 +1057,7 @@ plt.show()
 # ====================================================
 # ======== File Details ==============================
 
-calibration_folder = 'immunoblot_calibration_results'
+calibration_folder = 'ordinal_data_calibration_results'
 calibration_date = '20201212'  # calibration file name contains date string
 calibration_tag = 'apoptosis_params_and_immunoblot_classifier_calibration_1500s'
 

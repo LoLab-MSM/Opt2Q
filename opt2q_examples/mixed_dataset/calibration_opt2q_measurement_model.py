@@ -3,9 +3,9 @@ import datetime as dt
 import pandas as pd
 from pydream.parameters import SampledParam
 from scipy.stats import norm, invgamma, laplace, expon
-from opt2q_examples.cell_death_data_calibration.cell_death_data_calibration_setup \
+from opt2q_examples.nominal_data_calibration.nominal_data_calibration_setup \
     import set_up_simulator, pre_processing, true_params, set_up_classifier, synth_data
-from opt2q_examples.cell_death_data_calibration.cell_death_data_calibration_setup \
+from opt2q_examples.nominal_data_calibration.nominal_data_calibration_setup \
     import shift_and_scale_heterogeneous_population_to_new_params as sim_population
 from opt2q_examples.mixed_dataset.calibration_setup import set_up_simulator as immunoblot_set_up_sim, set_up_immunoblot
 from opt2q_examples.apoptosis_model import model
