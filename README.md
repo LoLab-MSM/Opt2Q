@@ -1,5 +1,5 @@
 # Opt2Q
-![example branch parameter](https://github.com/michael-irvin/Opt2Q/actions/workflows/python-package.yml/badge.svg?branch=manunscript)
+![test build](https://github.com/LoLab-VU/Opt2Q/actions/workflows/python-package.yml/badge.svg?branch=master)
 
 Some model calibrations in this package require a different branch of PyDREAM to run properly. 
 You can install that via pip, using the following: 
