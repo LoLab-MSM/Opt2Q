@@ -9,3 +9,5 @@ You can install that via pip, using the following:
     </code>
 </pre>
 
+In order to run plots of the calibrations you must first download the calibration results by running 
+`download_calibration_results.py` in its example directory. 
