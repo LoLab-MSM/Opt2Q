@@ -557,8 +557,8 @@ class NoiseModel(object):
             for col in self._exp_con_cols:
                 mean_conditional = mean[col] == row[col]
                 cov_conditional = cov[col] == row[col]
-                mean_i = mean_i[mean_conditional]
-                cov_i = cov_i[cov_conditional]
+                mean_i = mean_i.loc[mean_conditional]
+                cov_i = cov_i.loc[cov_conditional]
 
             sim_i = self._simulate(mean_i, cov_i, exp_id)
             simulated = pd.concat((simulated, sim_i), ignore_index=True, sort=False)

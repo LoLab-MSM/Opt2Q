@@ -2,9 +2,10 @@
 """
 Suite of Functions used in Measurement Models
 """
+import numba as nb
 import numpy as np
 import pandas as pd
-from numba import double, jit
+from numba import double, jit, generated_jit
 import inspect
 
 from sklearn.preprocessing import PolynomialFeatures
@@ -233,10 +234,10 @@ def where_min(x, var=None, drop_var=False):
     return res
 
 
+@nb.njit(nb.float64[:, :](nb.float64[:, :], nb.int64[:, :]))
 def fast_linear_interpolate_fillna(values, indices):
     # result = np.zeros_like(values, dtype=np.float32)
     result = values
-
     for idx in range(indices.shape[0]):
         x = indices[idx, 0]
         y = indices[idx, 1]
@@ -246,6 +247,7 @@ def fast_linear_interpolate_fillna(values, indices):
             new_val = value
         elif x == len(values[:, 0]) - 1:
             new_val = value
+
         elif np.isnan(value):  # interpolate
             lid = 0
             while True:
@@ -269,4 +271,5 @@ def fast_linear_interpolate_fillna(values, indices):
     return result
 
 
-fast_linear_interpolate_fillna = jit(double[:, :](double[:, :], double[:, :]))(fast_linear_interpolate_fillna)
+
+# fast_linear_interpolate_fillna = jit(double[:, :](double[:, :], double[:, :]))(fast_linear_interpolate_fillna)
