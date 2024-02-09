@@ -5,7 +5,7 @@ Suite of Functions used in Measurement Models
 import numba as nb
 import numpy as np
 import pandas as pd
-from numba import double, jit, generated_jit
+# from numba import double, jit, generated_jit
 import inspect
 
 from sklearn.preprocessing import PolynomialFeatures
